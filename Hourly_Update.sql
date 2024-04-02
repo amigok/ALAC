@@ -1,3 +1,5 @@
+-- this script updated 04022024 by Amit.G
+
 set batch_tag  = ts_macro_to_etl_batch_tag('2024-04-01T02:00:00+00:00'); 
 set max_batch_tag = (select nvl(max(etl_batch_tag), ts_macro_to_etl_batch_tag('2024-03-30T23:00:00+00:00')) from analytics.sandbox.agg_dsp_deal_bid_performance);
 set start_hour = (select iff($batch_tag > $max_batch_tag, $batch_tag,(select min(event_hour) as event_hour from analytics.dw.beacon_metric_fact where event_day = date_trunc('day', $batch_tag::date))));
