@@ -1,4 +1,6 @@
+-- some addtnl variables updated 04022024 by Amit.G
 -- this script updated 04022024 by Amit.G
+
 
 set batch_tag  = '{{ ts }}'; 
 set max_batch_tag = (select nvl(max(etl_batch_tag), '{{ ts }}') from analytics.sandbox.agg_dsp_deal_bid_performance);
