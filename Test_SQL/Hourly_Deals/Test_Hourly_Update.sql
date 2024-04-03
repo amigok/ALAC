@@ -1,4 +1,5 @@
 -- updated script 04032024 by Amit.G
+-- some intermediate changes
 -- this script updated 04022024 by Amit.G
 
 set batch_tag  = ts_macro_to_etl_batch_tag('2024-04-01T02:00:00+00:00'); 
