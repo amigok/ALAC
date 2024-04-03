@@ -2,13 +2,14 @@
 
 set batch_tag  = ts_macro_to_etl_batch_tag('2024-04-01T02:00:00+00:00'); 
 set max_batch_tag = (select nvl(max(etl_batch_tag), ts_macro_to_etl_batch_tag('2024-03-30T23:00:00+00:00')) from analytics.sandbox.agg_dsp_deal_bid_performance);
-set start_hour = (select iff($batch_tag > $max_batch_tag, $batch_tag,(select min(event_hour) as event_hour from analytics.dw.beacon_metric_fact where event_day = date_trunc('day', $batch_tag::date))));
+
+--set start_hour = (select iff($batch_tag > $max_batch_tag, $batch_tag,(select min(event_hour) as event_hour from analytics.dw.beacon_metric_fact where event_day = date_trunc('day', $batch_tag::date))));
+set start_hour = (select iff($batch_tag > $max_batch_tag, $batch_tag,concat(date_trunc('day', $batch_tag::date),'T00:00:00')::timestamp_ntz));
 set end_hour = (select iff($batch_tag > $max_batch_tag, $batch_tag, iff (
                        date_trunc('day', $max_batch_tag::date) = date_trunc('day', $batch_tag::date),
-                       $max_batch_tag, (select max(event_hour) as event_hour from analytics.dw.beacon_metric_fact where event_day = date_trunc('day', $batch_tag::date))
-                   )));
-
-                   
+                        $max_batch_tag, concat(date_trunc('day', $batch_tag::date),'T23:00:00')::timestamp_ntz)                     
+                   ));
+           
 BEGIN;
 
 /* 
@@ -154,7 +155,14 @@ beacon_metric_daily_dsp_deal as (
     group by 1,2,3,4,5,6,7,8
 )
 select
-    $batch_tag as etl_batch_tag,
+--    $batch_tag as etl_batch_tag,
+    case
+             when $batch_tag > $max_batch_tag
+             then $batch_tag
+             else 
+                iff (
+                       date_trunc('day', $max_batch_tag::date) = date_trunc('day', $batch_tag::date), $max_batch_tag, $end_hour)                     
+         end as etl_batch_tag,
 --    coalesce(breq.event_hour, bmf.event_hour, bresp.event_hour) as event_hour,
     coalesce(breq.event_day, bmf.event_day, bresp.event_day) as event_day,
     coalesce(breq.source_id, bmf.source_id, bresp.source_id) as source_id,
@@ -240,8 +248,10 @@ USING (select * from analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORMANCE where $b
           a.country_code = b.country_code and
           a.user_agent_device_category = b.user_agent_device_category and
           a.user_agent_browser = b.user_agent_browser
-WHEN MATCHED THEN UPDATE 
-      SET a.bid_request_count = a.bid_request_count+b.bid_request_count,
+WHEN MATCHED THEN UPDATE
+      SET 
+          a.etl_batch_tag = b.etl_batch_tag
+          a.bid_request_count = a.bid_request_count+b.bid_request_count,
           a.native_bid_request_count = a.native_bid_request_count + b.native_bid_request_count,
           a.video_bid_request_count = a.video_bid_request_count + b.video_bid_request_count,
           a.banner_bid_request_count = a.banner_bid_request_count + b.banner_bid_request_count,
@@ -327,7 +337,7 @@ insert into analytics.sandbox.agg_dsp_deal_bid_performance (
            server_impression_count,
            exchange_gross_revenue_usd
 )
-    select $end_hour,
+    select etl_batch_tag,
            event_day,
            source_id,
            deal_id,
