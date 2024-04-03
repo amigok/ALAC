@@ -1,4 +1,5 @@
 -- reminder to update schema information 04022024 by Amit.G
+-- check script one more time
 -- some addtnl variables updated 04022024 by Amit.G
 -- this script updated 04022024 by Amit.G
 
