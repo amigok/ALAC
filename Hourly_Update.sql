@@ -1,8 +1,5 @@
--- reminder to update schema information 04022024 by Amit.G
--- check script one more time
--- some addtnl variables updated 04022024 by Amit.G
--- this script updated 04022024 by Amit.G
-
+-- DBI-2413 incremental updates to deals aggregate
+-- Updated logic 040224 : Amit G
 
 set batch_tag  = '{{ ts }}'; 
 set max_batch_tag = (select nvl(max(etl_batch_tag), '{{ ts }}') from analytics.sandbox.agg_dsp_deal_bid_performance);
@@ -23,7 +20,7 @@ STEP 1
 Create temporary table
 */
 
-create or replace temporary table analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORMANCE (
+create or replace temporary table analytics.dw.WRK_AGG_DSP_DEAL_BID_PERFORMANCE (
 	ETL_BATCH_TAG VARCHAR(16777216) NOT NULL,
 	EVENT_DAY DATE NOT NULL,
 	SOURCE_ID VARCHAR(16777216) NOT NULL,
@@ -48,7 +45,7 @@ create or replace temporary table analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORM
  STEP 2 
 Create daily data for defined hour
 */
-insert into analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORMANCE (
+insert into analytics.dw.WRK_AGG_DSP_DEAL_BID_PERFORMANCE (
     etl_batch_tag,
     event_day,
     source_id,
@@ -232,21 +229,13 @@ where -- if $batch_tag > $max_batch_tag load a single day
 group by 1,2,3,4,5,6,7,8
 ;
 
-/*
-select event_day, sum(EXCHANGE_GROSS_REVENUE_USD) sand_EXCHANGE_GROSS_REVENUE_USD from analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORMANCE 
---where event_day in ('2024-03-31','2024-04-01')
-group by 1
---select distinct event_day from analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORMANCE limit 10
-*/
-
-
 /* 
 STEP 3
 Perform UPSERT (Update else Insert) operation using hourly data as source and aggregate table as target
 */
 
-MERGE INTO analytics.sandbox.agg_dsp_deal_bid_performance a 
-USING (select * from analytics.sandbox.WRK_AGG_DSP_DEAL_BID_PERFORMANCE where $batch_tag > $max_batch_tag) b 
+MERGE INTO analytics.dw.agg_dsp_deal_bid_performance a 
+USING (select * from analytics.dw.WRK_AGG_DSP_DEAL_BID_PERFORMANCE where $batch_tag > $max_batch_tag) b 
       ON  a.event_day = b.event_day and
           a.source_id = b.source_id and
           a.deal_id = b.deal_id and
@@ -307,24 +296,24 @@ WHEN NOT MATCHED
 
 commit;
 
---begin
+begin;
 
 /* Step 4
 Delete dates being rebuilt for exception cases (reruns, restarts)
 */
  
 delete
-    from analytics.sandbox.agg_dsp_deal_bid_performance
+    from analytics.dw.agg_dsp_deal_bid_performance
  where $batch_tag <= $max_batch_tag and
 --       date_trunc('day', etl_batch_tag::date) = date_trunc('day', $batch_tag::date)
-       event_day = (select distinct event_day from analytics.sandbox.WRK_agg_dsp_deal_bid_performance)
+       event_day = (select distinct event_day from analytics.dw.WRK_agg_dsp_deal_bid_performance)
 ;
 
 /* Step 5
 Insert dates for exception cases (reruns, restarts)
 */
 
-insert into analytics.sandbox.agg_dsp_deal_bid_performance (
+insert into analytics.dw.agg_dsp_deal_bid_performance (
            etl_batch_tag,
            event_day,
            source_id,
@@ -360,7 +349,7 @@ insert into analytics.sandbox.agg_dsp_deal_bid_performance (
            impression_rendered_count,
            server_impression_count,
            exchange_gross_revenue_usd
-    from analytics.sandbox.WRK_agg_dsp_deal_bid_performance
+    from analytics.dw.WRK_agg_dsp_deal_bid_performance
     where $batch_tag <= $max_batch_tag
 ;
 commit;
