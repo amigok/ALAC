@@ -1,3 +1,4 @@
+-- THIS FILE CAN NOW BE DELETED
 -- DBI-2135
 -- dw_etl_aggregates_daily/dsp_deals_bid_performance.sql
 
