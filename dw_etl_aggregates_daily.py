@@ -97,44 +97,6 @@ check_beacon_metric_fact = SnowflakeSqlSensor(
     retries=60,
 )
 
-check_bid_fact = SnowflakeSqlSensor(
-    dag=dag,
-    task_id="check_bid_fact",
-    sql="sql/dw_etl_aggregates_daily/check_bid_fact.sql",
-    conn_id="airflow_sensor_qc_wh",
-    depends_on_past=False,
-    mode='reschedule',
-    poke_interval=300,
-    timeout=600 * (60 + 1),
-    execution_timeout=timedelta(seconds=600),
-    retries=60,
-)
-
-check_bid_request_fact = SnowflakeSqlSensor(
-    dag=dag,
-    task_id="check_bid_request_fact",
-    sql="sql/dw_etl_aggregates_daily/check_bid_request_fact.sql",
-    conn_id="airflow_sensor_qc_wh",
-    depends_on_past=False,
-    mode='reschedule',
-    poke_interval=300,
-    timeout=600 * (60 + 1),
-    execution_timeout=timedelta(seconds=600),
-    retries=60,
-)
-
-check_raw_log_bid_request_imp = SnowflakeSqlSensor(
-    dag=dag,
-    task_id="check_raw_log_bid_request_imp",
-    sql="sql/dw_etl_aggregates_daily/check_raw_log_bid_request_imp.sql",
-    conn_id="airflow_sensor_qc_wh",
-    depends_on_past=False,
-    mode='reschedule',
-    poke_interval=300,
-    timeout=600 * (60 + 1),
-    execution_timeout=timedelta(seconds=600),
-    retries=60,
-)
 
 check_raw_log_impression_requests = SnowflakeSqlSensor(
     dag=dag,
@@ -258,18 +220,6 @@ qc_warning_dim_daily_dsp_discrepancy_adjustment = SnowflakeZeroRowsQC(
     retries=1,
 )
 qc_warning_dim_daily_dsp_discrepancy_adjustment.set_upstream(dim_daily_dsp_discrepancy_adjustment)
-
-
-agg_dsp_deal_bid_performance = SnowflakeSQL(
-    dag=dag,
-    task_id="agg_dsp_deal_bid_performance",
-    sql="sql/dw_etl_aggregates_daily/agg_dsp_deal_bid_performance.sql",
-    snowflake_conn_id=conn_id_insert,
-)
-agg_dsp_deal_bid_performance.set_upstream(check_beacon_metric_fact)
-agg_dsp_deal_bid_performance.set_upstream(check_bid_fact)
-agg_dsp_deal_bid_performance.set_upstream(check_bid_request_fact)
-agg_dsp_deal_bid_performance.set_upstream(check_raw_log_bid_request_imp)
 
 
 agg_audience_deal_bid_performance = SnowflakeSQL(

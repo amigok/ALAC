@@ -481,6 +481,19 @@ check_raw_beacon_arid_is_experiment = SnowflakeSqlSensor(
     retries=20,
 )
 
+check_raw_log_bid_request_imp = SnowflakeSqlSensor(
+    dag=dag,
+    task_id="check_raw_log_bid_request_imp",
+    sql="sql/dw_etl_aggregates/check_raw_log_bid_request_imp.sql",
+    conn_id="airflow_sensor_qc_wh",
+    depends_on_past=False,
+    mode='reschedule',
+    poke_interval=300,
+    timeout=600 * (60 + 1),
+    execution_timeout=timedelta(seconds=600),
+    retries=60,
+)
+
 # ==================================================================================
 # INSERTS
 
@@ -736,6 +749,19 @@ agg_dsp_targeting_performance = SnowflakeSQL(
 )
 
 agg_dsp_targeting_performance.set_upstream(ft_uid_sampled_metrics)
+
+agg_dsp_deal_bid_performance_hourly = SnowflakeSQL(
+    dag=dag,
+    task_id="agg_dsp_deal_bid_performance_hourly",
+    sql="sql/dw_etl_aggregates/agg_dsp_deal_bid_performance_hourly.sql",
+    snowflake_conn_id=conn_id_insert,
+)
+
+agg_dsp_deal_bid_performance_hourly.set_upstream(check_raw_log_bid_request_imp)
+
+beacon_metric_fact >> agg_dsp_deal_bid_performance_hourly
+bid_request_fact >> agg_dsp_deal_bid_performance_hourly
+bid_fact >> agg_dsp_deal_bid_performance_hourly
 
 # ==================================================================================
 
