@@ -481,6 +481,8 @@ check_raw_beacon_arid_is_experiment = SnowflakeSqlSensor(
     retries=20,
 )
 
+# ------ added 04112024 for incremental load of deals data
+
 check_raw_log_bid_request_imp = SnowflakeSqlSensor(
     dag=dag,
     task_id="check_raw_log_bid_request_imp",
