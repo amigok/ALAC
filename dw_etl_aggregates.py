@@ -16,6 +16,8 @@ centralized_failure_callbacks = CentralizedTaskFailureAlerts([
     {'func':slack.task_failure}
 ])
 
+# -- Check for new commits on repository
+
 default_args = {
     "owner": "dw_etl",
     "start_date": start_date,
