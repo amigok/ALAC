@@ -1,5 +1,5 @@
 -- DBI-2413 incremental updates to deals aggregate
--- Updated logic 040224 : Amit G
+-- Updated logic 041124 : Amit G
 
 set batch_tag  = '{{ ts }}'; 
 set max_batch_tag = (select nvl(max(etl_batch_tag), '{{ ts }}') from analytics.sandbox.agg_dsp_deal_bid_performance);
